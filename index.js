@@ -12,6 +12,7 @@ import {
   SignUpLineDesign,
 } from "../../../assets/export";
 import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { Onairos } from 'onairos';
 
 import {
   Flex,
@@ -170,6 +171,130 @@ const SignUp = () => {
     }
   };
 
+  // Onairos Integration
+  
+  // Onairos Request Data
+  const requestData = {
+    Avatar: {
+      type: "Avatar",
+      descriptions: "Insight into your Interests",
+      reward: "10% Discount"
+    },
+    Traits: {
+      type: "Traits",
+      descriptions: "Insight into your Interests",
+      reward: "10% Discount"
+    },
+    Large: {
+      type: "Personality",
+      descriptions: "Insight into your Interests",
+      reward: "3.5 USDC"
+    },
+  }
+
+  // Onairos Inference Input Data
+  const OnairosInput = [
+    {
+      "input": [
+        {
+          "text": "Ethereum is a decentralized, open-source blockchain platform that enables smart contracts and decentralized applications (dApps). It uses the native cryptocurrency ETH for transactions and gas fees.",
+          "category": "Blockchain",
+          "img_url": ""
+        },
+        {
+          "text": "Uniswap is a leading decentralized exchange protocol on Ethereum that uses an automated market maker (AMM) model to enable token swaps without traditional order books.",
+          "category": "Protocol",
+          "img_url": ""
+        },
+        {
+          "text": "Solana is a high-performance blockchain platform known for its fast transaction speeds and low fees, using a proof-of-history consensus mechanism alongside proof-of-stake.",
+          "category": "Blockchain",
+          "img_url": ""
+        },
+        {
+          "text": "Aave is a decentralized lending protocol that allows users to lend and borrow various cryptocurrencies, with both stable and variable interest rates.",
+          "category": "Protocol",
+          "img_url": ""
+        },
+        {
+          "text": "Polygon is a layer-2 scaling solution for Ethereum that provides faster and cheaper transactions while maintaining security through its proof-of-stake sidechain.",
+          "category": "Blockchain",
+          "img_url": ""
+        },
+        {
+          "text": "Chainlink is a decentralized oracle network that enables smart contracts to securely access off-chain data feeds, web APIs, and traditional bank payments.",
+          "category": "Protocol",
+          "img_url": ""
+        },
+        {
+          "text": "Avalanche is a layer-1 blockchain platform that uses a novel consensus mechanism to provide high throughput and quick finality for decentralized applications.",
+          "category": "Blockchain",
+          "img_url": ""
+        },
+        {
+          "text": "Compound is a decentralized lending protocol that automatically sets interest rates based on supply and demand of assets, allowing users to earn interest or borrow assets.",
+          "category": "Protocol",
+          "img_url": ""
+        },
+        {
+          "text": "Binance Smart Chain (BSC) is a blockchain network that runs in parallel to Binance Chain, offering smart contract functionality and compatibility with the Ethereum Virtual Machine.",
+          "category": "Blockchain",
+          "img_url": ""
+        },
+        {
+          "text": "Curve Finance is a decentralized exchange protocol optimized for stablecoin trading, offering low slippage and fees through specialized liquidity pools.",
+          "category": "Protocol",
+          "img_url": ""
+        }
+      ]
+    } ,
+  ]
+
+
+  // Successful API response and user data
+  const handleNext = (data) => {
+    console.log("User Data: ", data);
+    console.log("Onairos Response : ", UserOnairosData);
+
+    const interests = UserOnairosData.InferenceResult.output.output //Get data output
+    // Extract scores
+      .map((score, index) => ({ score: score[0][0], category: `input${index + 1}` }))
+      // Use scores to filter items if score is >0.5, item remains in interests
+      .filter(item => item.score > 0.5)
+      .map(item => item.category);
+    setUserProfile({ interests });
+    fetchUserSpecificJobs(interests);
+
+
+    // Proceed to the next section (town-hall)
+    window.location.replace("/town-hall");
+  };
+
+  // Listener to manually handle API Call
+  const handleOnairosResponse = async (event) => {
+      if (event.data && event.data.source === 'content-script' && event.data.type === 'API_URL_RESPONSE' && event.data.unique === "Onairos-Response") {
+        const { APIurl, approved, accessToken, username } = event.data;
+        await fetch(APIurl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}` // Include the access token in the Authorization header
+            },
+            body: JSON.stringify(InputData),
+        }).then(async (data)=>{
+            // process Onairos Data
+            handleNext(data);
+        })
+        .catch(error => console.error(error));
+      }
+  };
+
+
+  window.addEventListener('message', handleOnairosResponse);
+
+  // End Onairos Integration
+
+
   const toast = useToast();
   return (
     <>
@@ -231,6 +356,10 @@ const SignUp = () => {
                     )
                   }
                 />
+                
+                <Onairos textColor= "black" textLayout="right" inferenceData={OnairosInput} onComplete={handleNext} className="w-20 h-20 py-2 px-4 ml-5" requestData={requestData} autoFetch={true} webpageName="Onairos Internship Onboarding" proofMode={false} />
+                <Onairos textColor= "black" textLayout="right" inferenceData={OnairosInput} className="w-20 h-20 py-2 px-4 ml-5" requestData={requestData} autoFetch={true} webpageName="Onairos Internship Onboarding" proofMode={false} />
+
                 <Flex
                   color="#FFF"
                   fontFamily="PROXON"
